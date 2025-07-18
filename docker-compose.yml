@@ -1,0 +1,116 @@
+#services:
+#  traefik:
+#    image: traefik:v2.5
+#    container_name: traefik
+#    command:
+#      - "--providers.docker=true"
+#      - "--providers.docker.exposedbydefault=false"
+#      - "--entrypoints.web.address=:80"
+#      - "--entrypoints.dashboard.address=:8080"
+#      - "--api.insecure=true"
+#      - "--api.dashboard=true"
+#    ports:
+#      - "80:80"
+#      - "8080:8080"
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    networks:
+#      - traefik-net
+#    restart: unless-stopped
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.traefik.rule=Host(`traefik.localhost`)"
+#      - "traefik.http.routers.traefik.service=api@internal"
+#      - "traefik.http.routers.traefik.entrypoints=dashboard"
+#
+#  user-service:
+#    build:
+#      context: .
+#    environment:
+#      - SERVER_PORT=8080
+#    volumes:
+#      - uploads:/uploads
+#      - logs:/logs
+#    networks:
+#      - traefik-net
+#    depends_on:
+#      - traefik
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.user-service.rule=Host(`api.localhost`)"
+#      - "traefik.http.services.user-service.loadbalancer.server.port=8080"
+#      - "traefik.http.routers.user-service.entrypoints=web"
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#
+#  data-service:
+#    build:
+#      context: .
+#    environment:
+#      - PORT=8000
+#    ports:
+#      - "8000:8000"
+#    networks:
+#      - traefik-net
+#    depends_on:
+#      - traefik
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.data-service.rule=Host(`data.localhost`)"
+#      - "traefik.http.services.data-service.loadbalancer.server.port=8000"
+#      - "traefik.http.routers.data-service.entrypoints=web"
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#
+#  ui-service:
+#    build:
+#      context: .
+#    environment:
+#      - PORT=3000
+#    ports:
+#      - "3000:3000"
+#    networks:
+#      - traefik-net
+#    depends_on:
+#      - traefik
+#    labels:
+#      - "traefik.enable=true"
+#      - "traefik.http.routers.ui-service.rule=Host(`app.localhost`)"
+#      - "traefik.http.services.ui-service.loadbalancer.server.port=3000"
+#      - "traefik.http.routers.ui-service.entrypoints=web"
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#
+#volumes:
+#  uploads:
+#  logs:
+#
+#networks:
+#  traefik-net:
+#    external: true
+
+version: "3"
+
+services:
+  java-app:
+    image: my-java-app:latest  # Use the Docker image you built
+    labels:
+      - "traefik.http.routers.java-app.rule=Host(`java-app.docker.localhost`)"
+      - "traefik.http.services.java-app.loadbalancer.server.port=8080"
+    networks:
+      - traefik-net  # Connect to the shared network
+    restart: always
+
+
+networks:
+  traefik-net:
+    external: true  # Use the external network created earlier
